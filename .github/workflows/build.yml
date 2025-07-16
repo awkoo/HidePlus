@@ -1,0 +1,62 @@
+name: 编译内核
+
+on: push
+
+jobs:
+  release:
+    name: 打包模块
+    permissions: { contents: write }
+    runs-on: ubuntu-latest
+    steps:
+      - name: 同步仓库
+        uses: actions/checkout@v4
+
+      - name: 获取当前时间
+        id: time
+        run: echo "time_now=$(date -u +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
+
+      - name: 获取最新TAG
+        id: latest_tags
+        run: |
+          mkdir -p mk/{wj,rj,jb}
+          ZygiskNext=$(  gh release view --repo Dr-TSNG/ZygiskNext        --json tagName -q .tagName)
+          TrickyStore=$( gh release view --repo 5ec1cff/TrickyStore       --json tagName -q .tagName)
+          HideBL=$(      gh release view --repo awkoo/TrickyStore-HideBL  --json tagName -q .tagName)
+          Shamiko=$(     gh release view --repo LSPosed/LSPosed.github.io --json tagName -q .tagName)
+          SusfsModule=$( gh release view --repo sidex15/susfs4ksu-module  --json tagName -q .tagName)
+          LSPosed=$(     gh release view --repo awkoo/LSPosed             --json tagName -q .tagName)
+          HMA=$(         gh release view --repo awkoo/Hide-My-Applist     --json tagName -q .tagName)
+          gh release download $ZygiskNext  --repo Dr-TSNG/ZygiskNext        --pattern "*.zip" --dir ${{ runner.temp }}/ZygiskNext
+          gh release download $TrickyStore --repo 5ec1cff/TrickyStore       --pattern "*.zip" --dir ${{ runner.temp }}/TrickyStore
+          gh release download $HideBL      --repo awkoo/TrickyStore-HideBL  --pattern "*.zip" --dir ${{ runner.temp }}/HideBL
+          gh release download $Shamiko     --repo LSPosed/LSPosed.github.io --pattern "*.zip" --dir ${{ runner.temp }}/Shamiko
+          gh release download $SusfsModule --repo sidex15/susfs4ksu-module  --pattern "*.zip" --dir ${{ runner.temp }}/SusfsModule
+          gh release download $LSPosed     --repo awkoo/LSPosed             --pattern "*.zip" --dir ${{ runner.temp }}/LSPosed
+          gh release download $HMA         --repo awkoo/Hide-My-Applist     --pattern "*.apk" --dir ${{ runner.temp }}/HMA
+          mv ${{ runner.temp }}/ZygiskNext/*  wj/mk/0-ZygiskNext-${ZygiskNext}.zip
+          mv ${{ runner.temp }}/TrickyStore/* wj/mk/0-TrickyStore-${TrickyStore}.zip
+          mv ${{ runner.temp }}/HideBL/*      wj/mk/1-HideBL-${HideBL}.zip
+          mv ${{ runner.temp }}/Shamiko/*     wj/mk/1-Shamiko-${Shamiko}.zip
+          mv ${{ runner.temp }}/SusfsModule/* wj/mk/0-SusfsModule-${SusfsModule}.zip
+          mv ${{ runner.temp }}/LSPosed/*     wj/mk/1-LSPosed-${LSPosed}.zip
+          mv ${{ runner.temp }}/HMA/*         wj/rj/0-HMA-${HMA}.apk
+
+      - name: 打包
+        run: |
+          mkdir -p META-INF/com/google/android
+          touch META-INF/com/google/android/update-binary
+          touch META-INF/com/google/android/updater-script
+          cat >module.prop <<EOF
+          id=HidePlus
+          name=HidePlus
+          version=${{ steps.time.outputs.time_now }}
+          versionCode=${{ steps.time.outputs.time_now }}
+          author=awkoo
+          EOF
+          zip -q -r HidePlus-${{ steps.time.outputs.time_now }}.zip *
+
+      - name: 发布
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.time.outputs.time_now }}
+          files: HidePlus-${{ steps.time.outputs.time_now }}.zip
