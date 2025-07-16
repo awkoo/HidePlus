@@ -20,7 +20,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p mk/{wj,rj,jb}
+          mkdir -p wj/{mk,rj,jb}
           ZygiskNext=$(  gh release view --repo Dr-TSNG/ZygiskNext        --json tagName -q .tagName)
           TrickyStore=$( gh release view --repo 5ec1cff/TrickyStore       --json tagName -q .tagName)
           HideBL=$(      gh release view --repo awkoo/TrickyStore-HideBL  --json tagName -q .tagName)
